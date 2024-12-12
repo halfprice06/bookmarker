@@ -1,0 +1,6 @@
+anthropic
+instructor
+pydantic
+PyPDF2
+pdf2image
+Pillow
