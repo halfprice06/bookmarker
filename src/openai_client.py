@@ -81,7 +81,7 @@ Consider big structural changes like a new cover page, a new heading, or a drast
             ]
 
             resp = self.call_model(
-                model="gpt-4o", 
+                model="gpt-4o-mini", 
                 messages=messages,
                 system=system_prompt,
                 max_tokens=8000,

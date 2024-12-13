@@ -54,7 +54,7 @@ class DocumentTranscriber:
                 }
             ]
             
-            model = "claude-3-5-sonnet-latest" if self.provider == "anthropic" else "gpt-4o"
+            model = "claude-3-5-sonnet-latest" if self.provider == "anthropic" else "gpt-4o-mini"
             response = self.client.chat.completions.create(
                 model=model,
                 max_tokens=8000,
