@@ -42,7 +42,7 @@ output_docs/*
 output_with_bookmarks.pdf
 test.pdf
 
-input_docs/*
+input_dir/*
 
 documents.db
 

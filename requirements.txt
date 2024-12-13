@@ -4,3 +4,5 @@ pydantic
 PyPDF2
 pdf2image
 Pillow
+pdfplumber
+openai

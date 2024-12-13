@@ -8,8 +8,11 @@ from src.pdf_utils import extract_pages_as_images, add_bookmarks, split_document
 from src.db import init_db, insert_document
 from anthropic import Anthropic
 from src.doc_extractor import extract_document_data
+from src.transcriber import DocumentTranscriber
+from openai import OpenAI
+from src.openai_client import OpenAIClient
 
-def process_single_pdf(pdf_path: str, output_dir: str, db_path: str, anth_client: AnthropicClient, instructor_client: InstructorClient):
+def process_single_pdf(pdf_path: str, output_dir: str, db_path: str, api_client, instructor_client, model_client, model_provider):
     # Get the PDF filename without extension to use as subdirectory name
     pdf_name = Path(pdf_path).stem
     pdf_output_dir = os.path.join(output_dir, pdf_name)
@@ -26,20 +29,23 @@ def process_single_pdf(pdf_path: str, output_dir: str, db_path: str, anth_client
 
     # Segment the PDF into documents
     print("Segmenting PDF into separate documents...")
-    segments = segment_document(anth_client, pdf_images) 
+    segments = segment_document(api_client, pdf_images) 
     print(f"Found {len(segments)} distinct documents")
 
-    # Extract metadata for each doc using instructor
+    # Initialize transcriber
+    transcriber = DocumentTranscriber(model_client, model_provider)
+    
+    # Extract metadata and transcribe
     print("Extracting metadata from documents...")
-    docs_data = extract_document_data(instructor_client, pdf_images, segments)
+    docs_data = extract_document_data(instructor_client, transcriber, pdf_path, segments, pdf_output_dir)
     print(f"Extracted metadata for {len(docs_data)} documents")
 
     # Create bookmarks in the original PDF
     print("Adding bookmarks to PDF...")
-    doc_titles = [d.title for d in docs_data]
-    doc_dates = [d.date for d in docs_data]
+    doc_titles = [d[0].title for d in docs_data]
+    doc_dates = [d[0].date for d in docs_data]
     doc_start_pages = [s[0] for s in segments]
-    add_bookmarks(pdf_path, doc_start_pages, doc_titles, output_pdf)
+    add_bookmarks(pdf_path, doc_start_pages, doc_titles, output_pdf, doc_dates)
     print("Bookmarks added successfully")
 
     # Split documents into separate PDFs
@@ -49,8 +55,18 @@ def process_single_pdf(pdf_path: str, output_dir: str, db_path: str, anth_client
 
     # Insert metadata into DB
     print("Inserting document metadata into database...")
-    for doc_path, doc_meta in zip(doc_pdfs, docs_data):
-        insert_document(db_path, doc_meta.title, doc_meta.date, doc_meta.summary, os.path.basename(doc_path), doc_meta.tags)
+    for doc_path, (doc_meta, full_text, full_markdown, page_markdowns) in zip(doc_pdfs, docs_data):
+        insert_document(
+            db_path, 
+            doc_meta.title, 
+            doc_meta.date, 
+            doc_meta.summary, 
+            os.path.basename(doc_path), 
+            doc_meta.tags,
+            full_text,
+            full_markdown,
+            page_markdowns
+        )
         print(f"Inserted metadata for document: {doc_meta.title}")
 
     return len(segments)
@@ -60,6 +76,11 @@ def main():
     input_dir = "input_dir"
     output_dir = "output_docs"
     db_path = "documents.db"
+    
+    # Get model choice from environment or user input
+    model_provider = os.environ.get("MODEL_PROVIDER", "").lower()
+    while model_provider not in ["anthropic", "openai"]:
+        model_provider = input("Choose model provider (anthropic/openai): ").lower()
 
     # Create directories if they don't exist
     Path(input_dir).mkdir(exist_ok=True)
@@ -69,11 +90,17 @@ def main():
     init_db(db_path)
     print("Database initialized")
 
-    # Initialize API clients
+    # Initialize API clients based on chosen provider
     print("Initializing API clients...")
-    anth_client = AnthropicClient()
-    instructor_client = InstructorClient(Anthropic())
-    print("Clients initialized")
+    if model_provider == "anthropic":
+        api_client = AnthropicClient()
+        model_client = Anthropic()
+    else:
+        api_client = OpenAIClient()
+        model_client = OpenAI()
+    
+    instructor_client = InstructorClient(model_client, model_provider)
+    print(f"Initialized {model_provider.title()} clients")
 
     # Get all PDF files from input directory
     pdf_files = list(Path(input_dir).glob("*.pdf"))
@@ -91,8 +118,10 @@ def main():
                 str(pdf_file),
                 output_dir,
                 db_path,
-                anth_client,
-                instructor_client
+                api_client,
+                instructor_client,
+                model_client,
+                model_provider
             )
             total_documents += num_docs
         except Exception as e:
