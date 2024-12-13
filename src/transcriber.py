@@ -1,8 +1,6 @@
 from typing import List, Tuple
 import instructor
-from anthropic import Anthropic
 from pydantic import BaseModel
-from openai import OpenAI
 import os
 from pathlib import Path
 
@@ -54,7 +52,7 @@ class DocumentTranscriber:
                 }
             ]
             
-            model = "claude-3-5-sonnet-latest" if self.provider == "anthropic" else "gpt-4o-mini"
+            model = "claude-3-5-sonnet-latest" if self.provider == "anthropic" else "gpt-4o"
             response = self.client.chat.completions.create(
                 model=model,
                 max_tokens=8000,

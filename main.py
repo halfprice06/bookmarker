@@ -74,7 +74,7 @@ def process_single_pdf(pdf_path: str, output_dir: str, db_path: str, api_client,
 def main():
     # Configuration
     input_dir = "input_dir"
-    output_dir = "output_docs"
+    output_dir = "output_dir"
     db_path = "documents.db"
     
     # Get model choice from environment or user input

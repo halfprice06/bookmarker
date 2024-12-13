@@ -48,7 +48,7 @@ class InstructorClient:
                     }
                 ]
                 
-                model = "claude-3-5-sonnet-latest" if self.provider == "anthropic" else "gpt-4o-mini"
+                model = "claude-3-5-sonnet-latest" if self.provider == "anthropic" else "gpt-4o"
                 return self.client.chat.completions.create(
                     model=model,
                     max_tokens=8000,
