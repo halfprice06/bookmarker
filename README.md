@@ -1,4 +1,3 @@
-```markdown
 # bookmarker
 
 This repository provides a pipeline to process PDF files by segmenting them into separate documents, extracting metadata, inserting that metadata into a SQLite database, and generating individual PDF files and a bookmarked version of the original PDF.
