@@ -42,6 +42,8 @@ output_docs/*
 output_with_bookmarks.pdf
 test.pdf
 
+output_dir/*
+
 input_dir/*
 
 documents.db
